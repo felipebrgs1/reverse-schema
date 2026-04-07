@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<title>APIScope</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+:root {
+  --bg0: #0b0c14;
+  --bg1: #13141f;
+  --bg2: #1a1b2a;
+  --bg3: #22233a;
+  --border: rgba(255,255,255,0.07);
+  --text0: #e8e8f5;
+  --text1: #9999bb;
+  --text2: #5a5a80;
+  --accent: #7c6aff;
+  --accent2: #5b8dff;
+  --green: #3ecf8e;
+  --amber: #f5a623;
+  --red: #ff5e7a;
+  --teal: #3dd9d6;
+  --pink: #e86bdf;
+  --mono: 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+}
+
+body {
+  font-family: system-ui, sans-serif;
+  background: var(--bg0);
+  color: var(--text0);
+  width: 560px;
+  height: 600px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  font-size: 13px;
+}
+
+/* ── Header ── */
+header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 14px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.logo {
+  width: 26px; height: 26px;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  border-radius: 7px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.logo svg { width: 14px; height: 14px; }
+.hname { font-size: 13px; font-weight: 600; letter-spacing: -0.01em; }
+.hsub  { font-size: 10px; color: var(--text2); margin-top: 1px; }
+
+header .actions { margin-left: auto; display: flex; gap: 6px; }
+.btn-sm {
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg2);
+  color: var(--text1);
+  font-size: 11px;
+  cursor: pointer;
+  transition: background .15s, color .15s;
+}
+.btn-sm:hover { background: var(--bg3); color: var(--text0); }
+.btn-accent {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+.btn-accent:hover { opacity: .85; color: #fff; }
+
+/* ── Tabs ── */
+.tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  padding: 0 14px;
+}
+.tab {
+  padding: 8px 12px;
+  font-size: 12px;
+  color: var(--text2);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: color .15s, border-color .15s;
+  user-select: none;
+}
+.tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+.tab:hover:not(.active) { color: var(--text1); }
+
+/* ── Panes ── */
+.pane { display: none; flex: 1; overflow: hidden; flex-direction: column; }
+.pane.active { display: flex; }
+
+/* ── Request list ── */
+.filter-bar {
+  padding: 8px 14px;
+  display: flex;
+  gap: 8px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.filter-bar input {
+  flex: 1;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 5px 10px;
+  color: var(--text0);
+  font-size: 12px;
+  outline: none;
+}
+.filter-bar input:focus { border-color: var(--accent); }
+.filter-bar input::placeholder { color: var(--text2); }
+
+.req-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 6px 0;
+}
+.req-list::-webkit-scrollbar { width: 4px; }
+.req-list::-webkit-scrollbar-thumb { background: var(--bg3); border-radius: 4px; }
+
+.req-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px;
+  cursor: pointer;
+  transition: background .1s;
+  border-left: 2px solid transparent;
+}
+.req-item:hover { background: var(--bg1); }
+.req-item.selected { background: var(--bg2); border-left-color: var(--accent); }
+
+.method {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 5px;
+  border-radius: 4px;
+  flex-shrink: 0;
+  min-width: 38px;
+  text-align: center;
+}
+.GET    { background: rgba(62,207,142,.15); color: var(--green); }
+.POST   { background: rgba(245,166,35,.15); color: var(--amber); }
+.PUT    { background: rgba(91,141,255,.15); color: var(--accent2); }
+.PATCH  { background: rgba(232,107,223,.15); color: var(--pink); }
+.DELETE { background: rgba(255,94,122,.15); color: var(--red); }
+
+.req-url {
+  flex: 1;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text1);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.req-url em { color: var(--text0); font-style: normal; }
+
+.status {
+  font-size: 11px;
+  font-family: var(--mono);
+  flex-shrink: 0;
+}
+.s2xx { color: var(--green); }
+.s3xx { color: var(--teal); }
+.s4xx { color: var(--amber); }
+.s5xx { color: var(--red); }
+
+.req-meta { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.duration { font-size: 10px; color: var(--text2); }
+
+.badge-count {
+  font-size: 10px;
+  background: var(--bg3);
+  color: var(--text2);
+  border-radius: 10px;
+  padding: 1px 6px;
+  flex-shrink: 0;
+}
+
+.empty-state {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: var(--text2);
+  font-size: 12px;
+}
+.empty-state svg { opacity: .25; }
+
+/* ── Detail pane ── */
+.detail-pane {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.detail-header {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.detail-url {
+  flex: 1;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.detail-tabs {
+  display: flex;
+  padding: 0 14px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.detail-tab {
+  padding: 6px 10px;
+  font-size: 11px;
+  color: var(--text2);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: color .15s, border-color .15s;
+}
+.detail-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+.detail-tab:hover:not(.active) { color: var(--text1); }
+
+.detail-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px 14px;
+}
+.detail-body::-webkit-scrollbar { width: 4px; }
+.detail-body::-webkit-scrollbar-thumb { background: var(--bg3); border-radius: 4px; }
+
+/* ── Schema view ── */
+.schema-table { width: 100%; border-collapse: collapse; font-family: var(--mono); font-size: 11px; }
+.schema-table th {
+  text-align: left;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: .06em;
+  color: var(--text2);
+  padding: 4px 8px 8px;
+  border-bottom: 1px solid var(--border);
+  text-transform: uppercase;
+}
+.schema-table td { padding: 5px 8px; border-bottom: 1px solid rgba(255,255,255,.03); vertical-align: top; }
+.schema-table tr:hover td { background: var(--bg1); }
+.schema-table tr:last-child td { border-bottom: none; }
+
+.path-cell {
+  color: var(--text0);
+  white-space: nowrap;
+}
+.path-depth { color: var(--text2); }
+.path-leaf  { color: var(--teal); }
+.path-array { color: var(--accent2); }
+
+.type-pill {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.t-string  { background: rgba(124,106,255,.15); color: var(--accent); }
+.t-number  { background: rgba(62,207,142,.15);  color: var(--green);  }
+.t-boolean { background: rgba(245,166,35,.15);  color: var(--amber);  }
+.t-array   { background: rgba(91,141,255,.15);  color: var(--accent2);}
+.t-object  { background: rgba(61,217,214,.15);  color: var(--teal);   }
+.t-null    { background: rgba(90,90,128,.15);   color: var(--text2);  }
+.t-mixed   { background: rgba(232,107,223,.15); color: var(--pink);   }
+
+.nullable-dot {
+  display: inline-block;
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: var(--amber);
+  margin-left: 4px;
+  vertical-align: middle;
+  title: "nullable";
+}
+
+.enum-list { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 3px; }
+.enum-val {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-size: 10px;
+  color: var(--text0);
+}
+
+.range-info { color: var(--text1); font-size: 10px; }
+.format-badge {
+  display: inline-block;
+  background: rgba(255,94,122,.1);
+  color: var(--red);
+  border: 1px solid rgba(255,94,122,.2);
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.example-val { color: var(--text2); font-size: 10px; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ── Raw / Scrub view ── */
+.raw-block {
+  background: var(--bg1);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text1);
+  white-space: pre-wrap;
+  word-break: break-all;
+  line-height: 1.6;
+  max-height: 440px;
+  overflow-y: auto;
+}
+
+.scrub-actions {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+  align-items: center;
+}
+.scrub-hits {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-bottom: 10px;
+}
+.hit-chip {
+  background: rgba(255,94,122,.1);
+  border: 1px solid rgba(255,94,122,.2);
+  border-radius: 4px;
+  padding: 2px 7px;
+  font-size: 10px;
+  color: var(--red);
+}
+
+/* ── copy toast ── */
+#copyToast {
+  position: fixed;
+  bottom: 12px; right: 12px;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 7px 14px;
+  font-size: 12px;
+  color: var(--green);
+  display: none;
+  z-index: 999;
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <svg viewBox="0 0 14 14" fill="none">
+      <circle cx="7" cy="7" r="5.5" stroke="white" stroke-width="1.3"/>
+      <path d="M4.5 7h5M7 4.5v5" stroke="white" stroke-width="1.3" stroke-linecap="round"/>
+    </svg>
+  </div>
+  <div>
+    <div class="hname">APIScope</div>
+    <div class="hsub">Schema Inspector & PII Scrubber</div>
+  </div>
+  <div class="actions">
+    <button class="btn-sm" id="clearBtn">Limpar</button>
+    <button class="btn-sm" id="refreshBtn">↺ Atualizar</button>
+  </div>
+</header>
+
+<div class="tabs">
+  <div class="tab active" data-tab="requests">Requests</div>
+  <div class="tab" data-tab="detail" id="detailTab" style="display:none">Detalhe</div>
+</div>
+
+<!-- REQUESTS PANE -->
+<div class="pane active" id="pane-requests">
+  <div class="filter-bar">
+    <input type="text" id="filterInput" placeholder="Filtrar por URL, método..." />
+  </div>
+  <div class="req-list" id="reqList">
+    <div class="empty-state" id="emptyState">
+      <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+        <rect x="4" y="8" width="24" height="18" rx="3" stroke="currentColor" stroke-width="1.5"/>
+        <path d="M10 13h12M10 17h8M10 21h5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+      <span>Nenhuma request capturada ainda.</span>
+      <span style="font-size:11px">Use a página normalmente — fetch e XHR aparecem aqui.</span>
+    </div>
+  </div>
+</div>
+
+<!-- DETAIL PANE -->
+<div class="pane" id="pane-detail">
+  <div class="detail-header" id="detailHeader">
+    <span class="method GET" id="detailMethod">GET</span>
+    <span class="detail-url" id="detailUrl"></span>
+    <span class="status s2xx" id="detailStatus"></span>
+    <button class="btn-sm" id="backBtn">← Voltar</button>
+  </div>
+  <div class="detail-tabs">
+    <div class="detail-tab active" data-dtab="schema">Schema</div>
+    <div class="detail-tab" data-dtab="scrub">Scrub &amp; Copy</div>
+    <div class="detail-tab" data-dtab="raw">Raw JSON</div>
+  </div>
+  <div class="detail-body" id="detailBody"></div>
+</div>
+
+<div id="copyToast">Copiado!</div>
+
+<script src="schema.js"></script>
+<script src="popup.js"></script>
+</body>
+</html>
