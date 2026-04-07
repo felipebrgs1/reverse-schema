@@ -150,6 +150,85 @@ function inferSchema(bodies) {
   return schema;
 }
 
+// ── JSON Compressor — extract common values from arrays ────────────
+function deepEqual(a, b) {
+  if (a === b) return true;
+  if (a === null || b === null) return false;
+  if (typeof a !== typeof b) return false;
+  if (typeof a !== "object") return false;
+  if (Array.isArray(a) !== Array.isArray(b)) return false;
+
+  if (Array.isArray(a)) {
+    if (a.length !== b.length) return false;
+    return a.every((v, i) => deepEqual(v, b[i]));
+  }
+
+  const ka = Object.keys(a).sort();
+  const kb = Object.keys(b).sort();
+  if (ka.length !== kb.length) return false;
+  return ka.every((k) => deepEqual(a[k], b[k]));
+}
+
+function compressJson(body) {
+  const result = JSON.parse(JSON.stringify(body));
+  _compressNode(result);
+  return result;
+}
+
+function _compressNode(node) {
+  if (Array.isArray(node)) {
+    for (let i = 0; i < node.length; i++) {
+      _compressNode(node[i]);
+    }
+  } else if (node !== null && typeof node === "object") {
+    for (const key of Object.keys(node)) {
+      const val = node[key];
+      if (Array.isArray(val) && val.length > 1) {
+        const allObj = val.every((item) => item !== null && typeof item === "object" && !Array.isArray(item));
+        if (allObj) {
+          _compressArray(val);
+        } else {
+          _compressNode(val);
+        }
+      } else {
+        _compressNode(val);
+      }
+    }
+  }
+}
+
+function _compressArray(items) {
+  if (items.length < 2) return;
+
+  const allKeys = new Set();
+  for (const item of items) {
+    for (const k of Object.keys(item)) allKeys.add(k);
+  }
+
+  const defaults = {};
+  for (const key of allKeys) {
+    const hasInAll = items.every((item) => key in item);
+    if (!hasInAll) continue;
+
+    const firstVal = items[0][key];
+    const allSame = items.every((item) => deepEqual(item[key], firstVal));
+    if (allSame) {
+      defaults[key] = firstVal;
+    }
+  }
+
+  const defaultKeys = Object.keys(defaults);
+  if (defaultKeys.length < 3) return;
+
+  for (const item of items) {
+    for (const key of defaultKeys) {
+      delete item[key];
+    }
+  }
+
+  items.unshift({ _comum: defaults });
+}
+
 // ── PII Scrubber for full JSON ──────────────────────────────────────
 const SCRUB_RULES = [
   { re: /\d{3}[\.\s]?\d{3}[\.\s]?\d{3}[-\.\s]?\d{2}/g, tag: "[CPF]" },

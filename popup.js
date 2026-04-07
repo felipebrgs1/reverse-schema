@@ -113,6 +113,7 @@ function renderDetailTab(tab) {
 
   if (tab === "schema") renderSchema(body, bodies);
   else if (tab === "scrub") renderScrub(body, bodies[0]);
+  else if (tab === "compact") renderCompact(body, bodies[0]);
   else renderRaw(body, bodies[0]);
 }
 
@@ -267,6 +268,32 @@ function renderScrub(container, body) {
   });
   document.getElementById("copyRawBtn").addEventListener("click", () => {
     const raw = JSON.stringify(body, null, 2);
+    navigator.clipboard.writeText(raw).then(() => showToast("Original copiado!"));
+  });
+}
+
+function renderCompact(container, body) {
+  if (!body) {
+    container.innerHTML = `<div style="color:var(--text2);font-size:12px;padding:20px 0">Sem body JSON disponível.</div>`;
+    return;
+  }
+  const compressed = compressJson(body);
+  const raw = JSON.stringify(body, null, 2);
+  const compact = JSON.stringify(compressed, null, 2);
+  const pct = raw.length > 0 ? Math.round((1 - compact.length / raw.length) * 100) : 0;
+
+  container.innerHTML = `
+    <div class="scrub-actions">
+      <button class="btn-sm btn-accent" id="copyCompactBtn">Copiar compactado</button>
+      <button class="btn-sm" id="copyCompactOrigBtn">Copiar original</button>
+      <span style="font-size:10px;color:var(--text2);margin-left:auto">${raw.length} → ${compact.length} chars (${pct > 0 ? "-" : ""}${Math.abs(pct)}%)</span>
+    </div>
+    <div class="raw-block">${escHtml(compact)}</div>
+  `;
+  document.getElementById("copyCompactBtn").addEventListener("click", () => {
+    navigator.clipboard.writeText(compact).then(() => showToast("Compactado copiado!"));
+  });
+  document.getElementById("copyCompactOrigBtn").addEventListener("click", () => {
     navigator.clipboard.writeText(raw).then(() => showToast("Original copiado!"));
   });
 }
